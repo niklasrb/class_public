@@ -80,7 +80,11 @@ struct background
 
   double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$: decaying cold dark matter (dcdm) decaying to dark radiation (dr) */
 
-  double Gamma_dcdm; /**< \f$ \Gamma_{dcdm} \f$: decay constant for decaying cold dark matter */
+  double Gamma_dcdm;
+
+  double zeta_dcdm;  /**  decay fraction of dcdm->dr, see 1803.03644v3 **/
+  double kappa_dcdm;  /** decay rate of dcdm->dr **/
+  double a_t_dcdm;    /** decay time of dcdm->dr **/
 
   double Omega_ini_dcdm;    /**< \f$ \Omega_{ini,dcdm} \f$: rescaled initial value for dcdm density (see 1407.2418 for definitions) */
 
@@ -248,8 +252,8 @@ struct background
   //@{
 
   int index_bi_a;       /**< {B} scale factor */
-  int index_bi_rho_dcdm;/**< {B} dcdm density */
-  int index_bi_rho_dr;  /**< {B} dr density */
+  //int index_bi_rho_dcdm;/**< {B} dcdm density */
+  //int index_bi_rho_dr;  /**< {B} dr density */
   int index_bi_rho_fld; /**< {B} fluid density */
   int index_bi_phi_scf;       /**< {B} scalar field value */
   int index_bi_phi_prime_scf; /**< {B} scalar field derivative wrt conformal time */

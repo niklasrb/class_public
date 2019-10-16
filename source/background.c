@@ -313,7 +313,9 @@ int background_functions(
   /* dcdm */
   if (pba->has_dcdm == _TRUE_) {
     /* Pass value of rho_dcdm to output */
-    pvecback[pba->index_bg_rho_dcdm] = pvecback_B[pba->index_bi_rho_dcdm];
+    
+    pvecback[pba->index_bg_rho_dcdm] = pba->Omega0_dcdm*pba->H0*pba->H0 * pow(a_rel, -3)
+										*(1. + pba->zeta_dcdm *(1.-pow(a_rel, pba->kappa_dcdm))/(1. + pow(a_rel/pba->a_t_dcdm, pba->kappa_dcdm)));
     rho_tot += pvecback[pba->index_bg_rho_dcdm];
     p_tot += 0.;
     rho_m += pvecback[pba->index_bg_rho_dcdm];
@@ -322,7 +324,16 @@ int background_functions(
   /* dr */
   if (pba->has_dr == _TRUE_) {
     /* Pass value of rho_dr to output */
-    pvecback[pba->index_bg_rho_dr] = pvecback_B[pba->index_bi_rho_dr];
+    gsl_sf_result gsl_res;
+    int gsl_err = gsl_sf_hyperg_2F1_e(1.+1./pba->kappa_dcdm, 1/pba->kappa_dcdm, 2.+1./pba->kappa_dcdm, 
+											pow(a_rel, pba->kappa_dcdm)/(pow(a_rel, pba->kappa_dcdm) + pow(pba->a_t_dcdm, pba->kappa_dcdm)), &gsl_res);
+    class_test(gsl_err, 
+				pba->error_message,
+				"hypergeometric function evaluation failed with %i", gsl_err);
+    pvecback[pba->index_bg_rho_dr] = pba->Omega0_dcdm*pba->H0*pba->H0 * pba->kappa_dcdm /(1. + pba->kappa_dcdm)
+									*(1. + 1./pow(pba->a_t_dcdm, pba->kappa_dcdm)) * pow(1. + pow(a_rel/pba->a_t_dcdm, pba->kappa_dcdm), -(1.+1./pba->kappa_dcdm))
+									* pow(a_rel, pba->kappa_dcdm - 3.)
+									* gsl_res.val;
     rho_tot += pvecback[pba->index_bg_rho_dr];
     p_tot += (1./3.)*pvecback[pba->index_bg_rho_dr];
     rho_r += pvecback[pba->index_bg_rho_dr];
@@ -842,9 +853,9 @@ int background_indices(
   if (pba->Omega0_ncdm_tot != 0.)
     pba->has_ncdm = _TRUE_;
 
-  if (pba->Omega0_dcdmdr != 0.){
+  if (pba->Omega0_dcdm != 0.){
     pba->has_dcdm = _TRUE_;
-    if (pba->Gamma_dcdm != 0.)
+    if (pba->zeta_dcdm != 0.)
       pba->has_dr = _TRUE_;
   }
 
@@ -974,10 +985,10 @@ int background_indices(
   class_define_index(pba->index_bi_a,_TRUE_,index_bi,1);
 
   /* -> energy density in DCDM */
-  class_define_index(pba->index_bi_rho_dcdm,pba->has_dcdm,index_bi,1);
+  //class_define_index(pba->index_bi_rho_dcdm,pba->has_dcdm,index_bi,1);
 
   /* -> energy density in DR */
-  class_define_index(pba->index_bi_rho_dr,pba->has_dr,index_bi,1);
+  //class_define_index(pba->index_bi_rho_dr,pba->has_dr,index_bi,1);
 
   /* -> energy density in fluid */
   class_define_index(pba->index_bi_rho_fld,pba->has_fld,index_bi,1);
@@ -1719,12 +1730,12 @@ int background_solve(
   /* -> conformal age in Mpc */
   pba->conformal_age = pvecback_integration[pba->index_bi_tau];
   /* -> contribution of decaying dark matter and dark radiation to the critical density today: */
-  if (pba->has_dcdm == _TRUE_){
-    pba->Omega0_dcdm = pvecback_integration[pba->index_bi_rho_dcdm]/pba->H0/pba->H0;
-  }
-  if (pba->has_dr == _TRUE_){
-    pba->Omega0_dr = pvecback_integration[pba->index_bi_rho_dr]/pba->H0/pba->H0;
-  }
+  //if (pba->has_dcdm == _TRUE_){
+  //  pba->Omega0_dcdm = pvecback_integration[pba->index_bi_rho_dcdm]/pba->H0/pba->H0;
+  //}
+  //if (pba->has_dr == _TRUE_){
+  //  pba->Omega0_dr = pvecback_integration[pba->index_bi_rho_dr]/pba->H0/pba->H0;
+  //}
 
 
   /** - allocate background tables */
@@ -1945,15 +1956,19 @@ int background_initial_conditions(
     /** - We must add the relativistic contribution from NCDM species */
     rho_rad += rho_ncdm_rel_tot;
   }
+  
   if (pba->has_dcdm == _TRUE_){
     /* Remember that the critical density today in CLASS conventions is H0^2 */
-    pvecback_integration[pba->index_bi_rho_dcdm] =
+   /*pvecback_integration[pba->index_bi_rho_dcdm] =
       pba->Omega_ini_dcdm*pba->H0*pba->H0*pow(pba->a_today/a,3);
     if (pba->background_verbose > 3)
-      printf("Density is %g. a_today=%g. Omega_ini=%g\n",pvecback_integration[pba->index_bi_rho_dcdm],pba->a_today,pba->Omega_ini_dcdm);
+      printf("Density is %g. a_today=%g. Omega_ini=%g\n",pvecback_integration[pba->index_bi_rho_dcdm],pba->a_today,pba->Omega_ini_dcdm);*/
+      pba->Omega_ini_dcdm = pba->Omega0_dcdm*pba->H0*pba->H0 * pow(a/pba->a_today, -3)
+							*(1. + pba->zeta_dcdm);
+							//*(1. + pba->zeta_dcdm * (1 - pow(a/pba->a_today, pba->kappa_dcdm)) / (1. + pow(a/pba->a_t_dcdm, pba->kappa_dcdm)) );
   }
 
-  if (pba->has_dr == _TRUE_){
+  /*if (pba->has_dr == _TRUE_){
     if (pba->has_dcdm == _TRUE_){
       /**  - f is the critical density fraction of DR. The exact solution is:
        *
@@ -1963,14 +1978,14 @@ int background_initial_conditions(
        * Instead we use the Taylor expansion of this equation, which is equivalent to
        * ignoring f(a) in the Hubble rate.
        */
-      f = 1./3.*pow(a/pba->a_today,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3)/sqrt(Omega_rad);
-      pvecback_integration[pba->index_bi_rho_dr] = f*pba->H0*pba->H0/pow(a/pba->a_today,4);
+     // f = 1./3.*pow(a/pba->a_today,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3)/sqrt(Omega_rad);
+      /*pvecback_integration[pba->index_bi_rho_dr] = f*pba->H0*pba->H0/pow(a/pba->a_today,4);
     }
     else{
-      /** There is also a space reserved for a future case where dr is not sourced by dcdm */
+      /// There is also a space reserved for a future case where dr is not sourced by dcdm 
       pvecback_integration[pba->index_bi_rho_dr] = 0.0;
     }
-  }
+  }*/
 
   if (pba->has_fld == _TRUE_){
 
@@ -2326,17 +2341,7 @@ int background_derivs(
   dy[pba->index_bi_D] = y[pba->index_bi_D_prime];
   dy[pba->index_bi_D_prime] = -a*H*y[pba->index_bi_D_prime] + 1.5*a*a*rho_M*y[pba->index_bi_D];
 
-  if (pba->has_dcdm == _TRUE_){
-    /** - compute dcdm density \f$ \rho' = -3aH \rho - a \Gamma \rho \f$*/
-    dy[pba->index_bi_rho_dcdm] = -3.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*y[pba->index_bi_rho_dcdm]-
-      y[pba->index_bi_a]*pba->Gamma_dcdm*y[pba->index_bi_rho_dcdm];
-  }
 
-  if ((pba->has_dcdm == _TRUE_) && (pba->has_dr == _TRUE_)){
-    /** - Compute dr density \f$ \rho' = -4aH \rho - a \Gamma \rho \f$ */
-    dy[pba->index_bi_rho_dr] = -4.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*y[pba->index_bi_rho_dr]+
-      y[pba->index_bi_a]*pba->Gamma_dcdm*y[pba->index_bi_rho_dcdm];
-  }
 
   if (pba->has_fld == _TRUE_) {
     /** - Compute fld density \f$ \rho' = -3aH (1+w_{fld}(a)) \rho \f$ */

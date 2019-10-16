@@ -134,10 +134,10 @@
  * temporary parameters for background fzero function
  */
 
-enum target_names {theta_s, Omega_dcdmdr, omega_dcdmdr, Omega_scf, Omega_ini_dcdm, omega_ini_dcdm, sigma8};
+enum target_names {theta_s,  Omega_scf, sigma8};
 enum computation_stage {cs_background, cs_thermodynamics, cs_perturbations,
                         cs_primordial, cs_nonlinear, cs_transfer, cs_spectra};
-#define _NUM_TARGETS_ 7 //Keep this number as number of target_names
+#define _NUM_TARGETS_ 3 //Keep this number as number of target_names
 
 struct input_pprpba {
   struct precision * ppr;
@@ -238,10 +238,10 @@ extern "C" {
 			 int *fevals,
 			 ErrorMsg error_message);
 
-  int input_fzerofun_for_background(double Omega_ini_dcdm,
+  /*int input_fzerofun_for_background(double Omega_ini_dcdm,
 				    void* container,
 				    double *valout,
-				    ErrorMsg error_message);
+				    ErrorMsg error_message);*/
 
   int input_try_unknown_parameters(double * unknown_parameter,
                                    int unknown_parameters_size,

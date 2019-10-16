@@ -760,44 +760,51 @@ int input_read_parameters(
   Omega_tot += pba->Omega0_cdm;
 
   /** - Omega_0_dcdmdr (DCDM) */
-  class_call(parser_read_double(pfc,"Omega_dcdmdr",&param1,&flag1,errmsg),
+  class_call(parser_read_double(pfc,"Omega_dcdm",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
-  class_call(parser_read_double(pfc,"omega_dcdmdr",&param2,&flag2,errmsg),
+  class_call(parser_read_double(pfc,"omega_dcdm",&param2,&flag2,errmsg),
              errmsg,
              errmsg);
   class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
              errmsg,
-             "In input file, you can only enter one of Omega_dcdmdr or omega_dcdmdr, choose one");
+             "In input file, you can only enter one of Omega_dcdm or omega_dcdm, choose one");
   if (flag1 == _TRUE_)
-    pba->Omega0_dcdmdr = param1;
+    pba->Omega0_dcdm = param1;
   if (flag2 == _TRUE_)
-    pba->Omega0_dcdmdr = param2/pba->h/pba->h;
+    pba->Omega0_dcdm = param2/pba->h/pba->h;
 
-  if (pba->Omega0_dcdmdr > 0) {
-
-    Omega_tot += pba->Omega0_dcdmdr;
-
-    /** - Read Omega_ini_dcdm or omega_ini_dcdm */
-    class_call(parser_read_double(pfc,"Omega_ini_dcdm",&param1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-    class_call(parser_read_double(pfc,"omega_ini_dcdm",&param2,&flag2,errmsg),
-               errmsg,
-               errmsg);
-    class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
-               errmsg,
-               "In input file, you can only enter one of Omega_ini_dcdm or omega_ini_dcdm, choose one");
-    if (flag1 == _TRUE_)
-      pba->Omega_ini_dcdm = param1;
-    if (flag2 == _TRUE_)
-      pba->Omega_ini_dcdm = param2/pba->h/pba->h;
-
-    /** - Read Gamma in same units as H0, i.e. km/(s Mpc)*/
-    class_read_double("Gamma_dcdm",pba->Gamma_dcdm);
-    /* Convert to Mpc */
-    pba->Gamma_dcdm *= (1.e3 / _c_);
-
+  if (pba->Omega0_dcdm > 0) {
+	
+	pba->Omega0_dcdmdr = pba->Omega0_dcdm;
+	
+    /** - Read Other parameters*/
+    class_read_double("zeta_dcdm",pba->zeta_dcdm);
+    
+    class_read_double("kappa_dcdm", pba->kappa_dcdm);
+    class_read_double("a_t_dcdm", pba->a_t_dcdm);
+    class_test(pba->a_t_dcdm <= 0,
+				errmsg,
+				"a_t_dcdm must be postive");
+    
+    if(pba->zeta_dcdm > 0) {
+		pba->has_dr = _TRUE_;
+		gsl_sf_result gsl_res;    
+		int gsl_err = gsl_sf_hyperg_2F1_e(1.+1./pba->kappa_dcdm, 1/pba->kappa_dcdm, 2.+1./pba->kappa_dcdm, 
+											pow(pba->a_today, pba->kappa_dcdm)/(pow(pba->a_today, pba->kappa_dcdm) + pow(pba->a_t_dcdm, pba->kappa_dcdm)), &gsl_res);
+		class_test(gsl_err, 
+				pba->error_message,
+				"hypergeometric function evaluation failed with %i", gsl_err);
+		pba->Omega0_dr = pba->Omega0_dcdm* pba->kappa_dcdm /(1. + pba->kappa_dcdm)
+									*(1. + 1./pow(pba->a_t_dcdm, pba->kappa_dcdm)) * pow(1. + pow(pba->a_today/pba->a_t_dcdm, pba->kappa_dcdm), -(1.+1./pba->kappa_dcdm))
+									* pow(pba->a_today, pba->kappa_dcdm - 3.)
+									* gsl_res.val;
+		
+		if(pba->background_verbose > 2)
+			printf("Omega0_dr = %f\n", pba->Omega0_dr);
+		pba->Omega0_dcdmdr += pba->Omega0_dr;
+	}
+	Omega_tot += pba->Omega0_dcdmdr;
   }
 
   /** - non-cold relics (ncdm) */
@@ -2953,7 +2960,10 @@ int input_default_params(
   pba->Omega0_cdm = 0.12038/pow(pba->h,2);
   pba->Omega0_dcdmdr = 0.0;
   pba->Omega0_dcdm = 0.0;
-  pba->Gamma_dcdm = 0.0;
+  
+  pba->zeta_dcdm = 0.;
+  pba->kappa_dcdm = 0.;
+  pba->a_t_dcdm = 1.;
   pba->N_ncdm = 0;
   pba->Omega0_ncdm_tot = 0.;
   pba->ksi_ncdm_default = 0.;
@@ -3774,35 +3784,11 @@ int input_try_unknown_parameters(double * unknown_parameter,
     case theta_s:
       output[i] = 100.*th.rs_rec/th.ra_rec-pfzw->target_value[i];
       break;
-    case Omega_dcdmdr:
-      rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
-      if (ba.has_dr == _TRUE_)
-        rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
-      else
-        rho_dr_today = 0.;
-      output[i] = (rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)-pfzw->target_value[i];
-      break;
-    case omega_dcdmdr:
-      rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
-      if (ba.has_dr == _TRUE_)
-        rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
-      else
-        rho_dr_today = 0.;
-      output[i] = (rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)-pfzw->target_value[i]/ba.h/ba.h;
-      break;
+    
     case Omega_scf:
       /** - In case scalar field is used to fill, pba->Omega0_scf is not equal to pfzw->target_value[i].*/
       output[i] = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_scf]/(ba.H0*ba.H0)
         -ba.Omega0_scf;
-      break;
-    case Omega_ini_dcdm:
-    case omega_ini_dcdm:
-      rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
-      if (ba.has_dr == _TRUE_)
-        rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
-      else
-        rho_dr_today = 0.;
-      output[i] = -(rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)+ba.Omega0_dcdmdr;
       break;
     case sigma8:
       output[i] = sp.sigma8-pfzw->target_value[i];
@@ -3893,44 +3879,7 @@ int input_get_guess(double *xguess,
       ba.h = xguess[index_guess];
       ba.H0 = ba.h *  1.e5 / _c_;
       break;
-    case Omega_dcdmdr:
-      Omega_M = ba.Omega0_cdm+ba.Omega0_dcdmdr+ba.Omega0_b;
-      /* This formula is exact in a Matter + Lambda Universe, but only
-         for Omega_dcdm, not the combined.
-         sqrt_one_minus_M = sqrt(1.0 - Omega_M);
-         xguess[index_guess] = pfzw->target_value[index_guess]*
-         exp(2./3.*ba.Gamma_dcdm/ba.H0*
-         atanh(sqrt_one_minus_M)/sqrt_one_minus_M);
-         dxdy[index_guess] = 1.0;//exp(2./3.*ba.Gamma_dcdm/ba.H0*atanh(sqrt_one_minus_M)/sqrt_one_minus_M);
-      */
-      gamma = ba.Gamma_dcdm/ba.H0;
-      if (gamma < 1)
-        a_decay = 1.0;
-      else
-        a_decay = pow(1+(gamma*gamma-1.)/Omega_M,-1./3.);
-      xguess[index_guess] = pfzw->target_value[index_guess]/a_decay;
-      dxdy[index_guess] = 1./a_decay;
-      //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
-      break;
-    case omega_dcdmdr:
-      Omega_M = ba.Omega0_cdm+ba.Omega0_dcdmdr+ba.Omega0_b;
-      /* This formula is exact in a Matter + Lambda Universe, but only
-         for Omega_dcdm, not the combined.
-         sqrt_one_minus_M = sqrt(1.0 - Omega_M);
-         xguess[index_guess] = pfzw->target_value[index_guess]*
-         exp(2./3.*ba.Gamma_dcdm/ba.H0*
-         atanh(sqrt_one_minus_M)/sqrt_one_minus_M);
-         dxdy[index_guess] = 1.0;//exp(2./3.*ba.Gamma_dcdm/ba.H0*atanh(sqrt_one_minus_M)/sqrt_one_minus_M);
-      */
-      gamma = ba.Gamma_dcdm/ba.H0;
-      if (gamma < 1)
-        a_decay = 1.0;
-      else
-        a_decay = pow(1+(gamma*gamma-1.)/Omega_M,-1./3.);
-      xguess[index_guess] = pfzw->target_value[index_guess]/ba.h/ba.h/a_decay;
-      dxdy[index_guess] = 1./a_decay/ba.h/ba.h;
-        //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
-      break;
+
     case Omega_scf:
 
  /** - This guess is arbitrary, something nice using WKB should be implemented.
@@ -3949,26 +3898,6 @@ int input_get_guess(double *xguess,
         xguess[index_guess] = ba.scf_parameters[ba.scf_tuning_index];
         dxdy[index_guess] = 1.;
       }
-      break;
-    case omega_ini_dcdm:
-      Omega0_dcdmdr = 1./(ba.h*ba.h);
-    case Omega_ini_dcdm:
-      /** - This works since correspondence is
-          Omega_ini_dcdm -> Omega_dcdmdr and
-          omega_ini_dcdm -> omega_dcdmdr */
-      Omega0_dcdmdr *=pfzw->target_value[index_guess];
-      Omega_M = ba.Omega0_cdm+Omega0_dcdmdr+ba.Omega0_b;
-      gamma = ba.Gamma_dcdm/ba.H0;
-      if (gamma < 1)
-        a_decay = 1.0;
-      else
-        a_decay = pow(1+(gamma*gamma-1.)/Omega_M,-1./3.);
-      xguess[index_guess] = pfzw->target_value[index_guess]*a_decay;
-      dxdy[index_guess] = a_decay;
-      if (gamma > 100)
-        dxdy[index_guess] *= gamma/100;
-
-      //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
       break;
 
     case sigma8:
@@ -4088,11 +4017,8 @@ int input_auxillary_target_conditions(struct file_content * pfc,
   class_read_int("input_verbose",input_verbose);
   */
   switch (target_name){
-  case Omega_dcdmdr:
-  case omega_dcdmdr:
+  
   case Omega_scf:
-  case Omega_ini_dcdm:
-  case omega_ini_dcdm:
     /* Check that Omega's or omega's are nonzero: */
     if (target_value == 0.)
       *aux_flag = _FALSE_;
