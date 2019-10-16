@@ -790,13 +790,13 @@ int input_read_parameters(
     if(pba->zeta_dcdm > 0) {
 		pba->has_dr = _TRUE_;
 		gsl_sf_result gsl_res;    
-		int gsl_err = gsl_sf_hyperg_2F1_e(1.+1./pba->kappa_dcdm, 1/pba->kappa_dcdm, 2.+1./pba->kappa_dcdm, 
+		int gsl_err = gsl_sf_hyperg_2F1_e(2., 1., 2.+1./pba->kappa_dcdm, 
 											pow(pba->a_today, pba->kappa_dcdm)/(pow(pba->a_today, pba->kappa_dcdm) + pow(pba->a_t_dcdm, pba->kappa_dcdm)), &gsl_res);
 		class_test(gsl_err, 
 				pba->error_message,
 				"hypergeometric function evaluation failed with %i", gsl_err);
 		pba->Omega0_dr = pba->Omega0_dcdm* pba->kappa_dcdm /(1. + pba->kappa_dcdm)
-									*(1. + 1./pow(pba->a_t_dcdm, pba->kappa_dcdm)) * pow(1. + pow(pba->a_today/pba->a_t_dcdm, pba->kappa_dcdm), -(1.+1./pba->kappa_dcdm))
+									*(1. + 1./pow(pba->a_t_dcdm, pba->kappa_dcdm)) * pow(1. + pow(pba->a_today/pba->a_t_dcdm, pba->kappa_dcdm), -2)
 									* pow(pba->a_today, pba->kappa_dcdm - 3.)
 									* gsl_res.val;
 		

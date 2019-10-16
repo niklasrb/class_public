@@ -325,13 +325,13 @@ int background_functions(
   if (pba->has_dr == _TRUE_) {
     /* Pass value of rho_dr to output */
     gsl_sf_result gsl_res;
-    int gsl_err = gsl_sf_hyperg_2F1_e(1.+1./pba->kappa_dcdm, 1/pba->kappa_dcdm, 2.+1./pba->kappa_dcdm, 
+    int gsl_err = gsl_sf_hyperg_2F1_e(2., 1., 2.+1./pba->kappa_dcdm, 
 											pow(a_rel, pba->kappa_dcdm)/(pow(a_rel, pba->kappa_dcdm) + pow(pba->a_t_dcdm, pba->kappa_dcdm)), &gsl_res);
     class_test(gsl_err, 
 				pba->error_message,
 				"hypergeometric function evaluation failed with %i", gsl_err);
     pvecback[pba->index_bg_rho_dr] = pba->Omega0_dcdm*pba->H0*pba->H0 * pba->kappa_dcdm /(1. + pba->kappa_dcdm)
-									*(1. + 1./pow(pba->a_t_dcdm, pba->kappa_dcdm)) * pow(1. + pow(a_rel/pba->a_t_dcdm, pba->kappa_dcdm), -(1.+1./pba->kappa_dcdm))
+									*(1. + 1./pow(pba->a_t_dcdm, pba->kappa_dcdm)) * pow(1. + pow(a_rel/pba->a_t_dcdm, pba->kappa_dcdm), -2)
 									* pow(a_rel, pba->kappa_dcdm - 3.)
 									* gsl_res.val;
     rho_tot += pvecback[pba->index_bg_rho_dr];
@@ -1845,6 +1845,7 @@ int background_solve(
       printf("     -> Omega0_dr = %f\n",pba->Omega0_dr);
       printf("     -> Omega0_dr+Omega0_dcdm = %f, input value = %f\n",
              pba->Omega0_dr+pba->Omega0_dcdm,pba->Omega0_dcdmdr);
+      printf("     -> Decay around z = %f\n", 1. + pba->a_today/pba->a_t_dcdm);
       printf("     -> Omega_ini_dcdm/Omega_b = %f\n",pba->Omega_ini_dcdm/pba->Omega0_b);
     }
     if (pba->has_scf == _TRUE_){
@@ -2484,4 +2485,13 @@ double ddV_scf(
                struct background *pba,
                double phi) {
   return ddV_e_scf(pba,phi)*V_p_scf(pba,phi) + 2*dV_e_scf(pba,phi)*dV_p_scf(pba,phi) + V_e_scf(pba,phi)*ddV_p_scf(pba,phi);
+}
+
+double dcdmdr_model_Q(
+							struct background *pba,
+							double a,
+							double H
+							) {
+	return pba->Omega0_dcdm * pba->H0 * pba->H0 * pba->zeta_dcdm * pba->kappa_dcdm * (pow(a/pba->a_today, pba->kappa_dcdm) + pow(a/pba->a_t_dcdm, pba->kappa_dcdm))
+			* H * pow(pba->a_today/a, 2) / pow(1.+ pow(a/pba->a_t_dcdm, pba->kappa_dcdm), 2);
 }

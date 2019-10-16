@@ -80,7 +80,7 @@ struct background
 
   double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$: decaying cold dark matter (dcdm) decaying to dark radiation (dr) */
 
-  double Gamma_dcdm;
+  //double Gamma_dcdm;
 
   double zeta_dcdm;  /**  decay fraction of dcdm->dr, see 1803.03644v3 **/
   double kappa_dcdm;  /** decay rate of dcdm->dr **/
@@ -532,6 +532,12 @@ extern "C" {
                double phi_prime
                );
 
+
+	double dcdmdr_model_Q(
+							struct background *pba,
+							double a,
+							double H
+							);
 #ifdef __cplusplus
 }
 #endif

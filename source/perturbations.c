@@ -4469,7 +4469,7 @@ int perturb_initial_conditions(struct precision * ppr,
       }
 
       if (pba->has_dcdm == _TRUE_) {
-        ppw->pv->y[ppw->pv->index_pt_delta_dcdm] += (-3.*a_prime_over_a - a*pba->Gamma_dcdm)*alpha;
+        ppw->pv->y[ppw->pv->index_pt_delta_dcdm] += (-3.*a_prime_over_a - a*dcdmdr_model_Q(pba, a, ppw->pvecback[pba->index_bg_H])/ppw->pvecback[pba->index_bg_rho_dcdm])*alpha;
         ppw->pv->y[ppw->pv->index_pt_theta_dcdm] = k*k*alpha;
       }
 
@@ -4502,7 +4502,7 @@ int perturb_initial_conditions(struct precision * ppr,
         /* shear and l3 are gauge invariant */
 
         if (pba->has_dr == _TRUE_)
-          delta_dr += (-4.*a_prime_over_a + a*pba->Gamma_dcdm*ppw->pvecback[pba->index_bg_rho_dcdm]/ppw->pvecback[pba->index_bg_rho_dr])*alpha;
+          delta_dr += (-4.*a_prime_over_a + a* dcdmdr_model_Q(pba, a, ppw->pvecback[pba->index_bg_H])/ppw->pvecback[pba->index_bg_rho_dr])*alpha;
 
       }
 
@@ -6642,7 +6642,7 @@ int perturb_print_variables(double tau,
       }
 
       if (pba->has_dr == _TRUE_) {
-        delta_dr += (-4.*a*H+a*pba->Gamma_dcdm*pvecback[pba->index_bg_rho_dcdm]/pvecback[pba->index_bg_rho_dr])*alpha;
+        delta_dr += (-4.*a*H+ a*dcdmdr_model_Q(pba, a, H)/pvecback[pba->index_bg_rho_dr])*alpha;
 
         theta_dr += k*k*alpha;
       }
@@ -6659,7 +6659,7 @@ int perturb_print_variables(double tau,
       }
 
       if (pba->has_dcdm == _TRUE_) {
-        delta_dcdm += alpha*(-a*pba->Gamma_dcdm-3.*a*H);
+        delta_dcdm += alpha*(-a*dcdmdr_model_Q(pba, a, H)/pvecback[pba->index_bg_rho_dcdm] - 3.*a*H);
         theta_dcdm += k*k*alpha;
       }
 
@@ -7294,7 +7294,7 @@ int perturb_derivs(double tau,
       /** - ----> dcdm */
 
       dy[pv->index_pt_delta_dcdm] = -(y[pv->index_pt_theta_dcdm]+metric_continuity)
-        - a * pba->Gamma_dcdm / k2 * metric_euler; /* dcdm density */
+        - dcdmdr_model_Q(pba, a, pvecback[pba->index_bg_H])/pvecback[pba->index_bg_rho_dcdm] / k2 * metric_euler; /* dcdm density */
 
       dy[pv->index_pt_theta_dcdm] = - a_prime_over_a*y[pv->index_pt_theta_dcdm] + metric_euler; /* dcdm velocity */
     }
@@ -7309,7 +7309,7 @@ int perturb_derivs(double tau,
       */
 
       f_dr = pow(pow(a/pba->a_today,2)/pba->H0,2)*pvecback[pba->index_bg_rho_dr];
-      fprime_dr = pba->Gamma_dcdm*pvecback[pba->index_bg_rho_dcdm]*pow(a,5)/pow(pba->H0,2);
+      fprime_dr = dcdmdr_model_Q(pba, a, pvecback[pba->index_bg_H])*pow(a,5)/pow(pba->H0,2);
 
       /** - ----> dr F0 */
       dy[pv->index_pt_F0_dr] = -k*y[pv->index_pt_F0_dr+1]-4./3.*metric_continuity*f_dr+
