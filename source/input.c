@@ -758,7 +758,8 @@ int input_read_parameters(
     pba->Omega0_cdm = param2/pba->h/pba->h;
 
   Omega_tot += pba->Omega0_cdm;
-
+	
+  
   /** - Omega_0_dcdmdr (DCDM) */
   class_call(parser_read_double(pfc,"Omega_dcdm",&param1,&flag1,errmsg),
              errmsg,
@@ -766,41 +767,59 @@ int input_read_parameters(
   class_call(parser_read_double(pfc,"omega_dcdm",&param2,&flag2,errmsg),
              errmsg,
              errmsg);
-  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+             
+  class_call(parser_read_double(pfc,"omega_cdm_ref_for_omega_rec_dcdm", &param3, &flag3,errmsg),
              errmsg,
-             "In input file, you can only enter one of Omega_dcdm or omega_dcdm, choose one");
+             errmsg);
+  
+  class_test((class_at_least_two_of_three(flag1,flag2,flag3)),
+             errmsg,
+             "In input file, you can only enter one of Omega_dcdm, omega_dcdm, or omega_cdm_ref_for_omega_rec_dcdm, choose one");
   if (flag1 == _TRUE_)
     pba->Omega0_dcdm = param1;
   if (flag2 == _TRUE_)
     pba->Omega0_dcdm = param2/pba->h/pba->h;
 
-  if (pba->Omega0_dcdm > 0) {
-	
-	pba->Omega0_dcdmdr = pba->Omega0_dcdm;
-	
+	double Omega_cdm_ref_for_omega_rec_dcdm = 0.;
+  if(flag3 == _TRUE_)
+	Omega_cdm_ref_for_omega_rec_dcdm = param3/pba->h/pba->h;
+
+  if (pba->Omega0_dcdm > 0 || Omega_cdm_ref_for_omega_rec_dcdm > 0) {
+	pba->has_dcdm = _TRUE_;
     /** - Read Other parameters*/
     class_read_double("zeta_dcdm",pba->zeta_dcdm);
-    
     class_read_double("kappa_dcdm", pba->kappa_dcdm);
     class_read_double("a_t_dcdm", pba->a_t_dcdm);
     class_test(pba->a_t_dcdm <= 0,
 				errmsg,
 				"a_t_dcdm must be postive");
     
-    if(pba->zeta_dcdm > 0) {
+    if(Omega_cdm_ref_for_omega_rec_dcdm > 0) {
+		double a_rec = 1./(1. + 1100.);
+		pba->Omega0_dcdm = Omega_cdm_ref_for_omega_rec_dcdm / (1. + pba->kappa_dcdm * (1.-pow(a_rec/pba->a_today, pba->kappa_dcdm))/(1. + pow(a_rec/pba->a_t_dcdm, pba->kappa_dcdm)));
+	}
+    if(input_verbose > 2)
+			printf("Omega0_dcdm = %f\n", pba->Omega0_dcdm);
+    pba->Omega0_dcdmdr = pba->Omega0_dcdm;
+    if(pba->zeta_dcdm > 0 && pba->kappa_dcdm > 0) {
 		pba->has_dr = _TRUE_;
-		gsl_sf_result gsl_res;    
-		int gsl_err = gsl_sf_hyperg_2F1_e(2., 1., 2.+1./pba->kappa_dcdm, 
+		gsl_sf_result gsl_res; 
+		class_test(pow(pba->a_today, pba->kappa_dcdm)/(pow(pba->a_today, pba->kappa_dcdm) + pow(pba->a_t_dcdm, pba->kappa_dcdm)) == 1.0,
+				errmsg,
+				"Combination of parameters results in problematic input");
+		int gsl_err = gsl_sf_hyperg_2F1_e(1., 1., 1.+1./pba->kappa_dcdm, 
 											pow(pba->a_today, pba->kappa_dcdm)/(pow(pba->a_today, pba->kappa_dcdm) + pow(pba->a_t_dcdm, pba->kappa_dcdm)), &gsl_res);
-		class_test(gsl_err, 
-				pba->error_message,
-				"hypergeometric function evaluation failed with %i", gsl_err);
-		pba->Omega0_dr = pba->Omega0_dcdm* pba->kappa_dcdm /(1. + pba->kappa_dcdm)
-									*(1. + 1./pow(pba->a_t_dcdm, pba->kappa_dcdm)) * pow(1. + pow(pba->a_today/pba->a_t_dcdm, pba->kappa_dcdm), -2)
-									* pow(pba->a_today, pba->kappa_dcdm - 3.)
-									* gsl_res.val;
 		
-		if(pba->background_verbose > 2)
+		
+		class_test(gsl_err, 
+				errmsg,
+				"hypergeometric function evaluation failed with %i", gsl_err);
+		pba->Omega0_dr = pba->Omega0_dcdm* pba->zeta_dcdm * (1. + pow(pba->a_t_dcdm, pba->kappa_dcdm))
+									* pow(pba->a_today, pba->kappa_dcdm - 3.)
+									*( gsl_res.val/(1.+ pow(pba->a_today/pba->a_t_dcdm, pba->kappa_dcdm)) 
+												- pow(pba->a_t_dcdm, pba->kappa_dcdm)/(pow(pba->a_t_dcdm, pba->kappa_dcdm) + pow(pba->a_today, pba->kappa_dcdm)));
+		
+		if(input_verbose > 2)
 			printf("Omega0_dr = %f\n", pba->Omega0_dr);
 		pba->Omega0_dcdmdr += pba->Omega0_dr;
 	}

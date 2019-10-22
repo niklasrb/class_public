@@ -45,7 +45,7 @@ OMPFLAG   = -fopenmp
 # all other compilation flags
 CCFLAG = -g -fPIC 
 LDFLAG = -g -fPIC 
-LIBS = -L/usr/lib/x86_64-linux-gnu -lgsl -lgslcblas -lm
+LIBS =  -lgsl -lgslcblas -lm
 
 # leave blank to compile without HyRec, or put path to HyRec directory
 # (with no slash at the end: e.g. hyrec or ../hyrec)
