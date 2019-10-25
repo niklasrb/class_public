@@ -864,9 +864,9 @@ int background_indices(
   if (pba->Omega0_ncdm_tot != 0.)
     pba->has_ncdm = _TRUE_;
 
-  if (pba->Omega0_dcdmdr != 0.){
+  if (pba->Omega0_dcdm != 0.){
     pba->has_dcdm = _TRUE_;
-    if (pba->Gamma_dcdm != 0.)
+    if (pba->kappa_dcdm != 0. && pba->zeta_dcdm != 0.)
       pba->has_dr = _TRUE_;
   }
 
@@ -1866,7 +1866,7 @@ int background_solve(
       printf("     -> Omega0_dr = %f\n",pba->Omega0_dr);
       printf("     -> Omega0_dr+Omega0_dcdm = %f, input value = %f\n",
              pba->Omega0_dr+pba->Omega0_dcdm,pba->Omega0_dcdmdr);
-      printf("     -> Omega_ini_dcdm/Omega_b = %f\n",pba->Omega_ini_dcdm/pba->Omega0_b);
+      //printf("     -> Omega_ini_dcdm/Omega_b = %f\n",pba->Omega_ini_dcdm/pba->Omega0_b);
     }
     if (pba->has_scf == _TRUE_){
       printf("    Scalar field details:\n");
@@ -1985,9 +1985,10 @@ int background_initial_conditions(
   if (pba->has_dcdm == _TRUE_){
     /* Remember that the critical density today in CLASS conventions is H0^2 */
     pvecback_integration[pba->index_bi_rho_dcdm] =
-      pba->Omega_ini_dcdm*pba->H0*pba->H0*pow(pba->a_today/a,3);
+      pba->Omega0_dcdm*pba->H0*pba->H0*pow(pba->a_today/a,3) 
+		* (1. + pba->zeta_dcdm * (1. - pow(a/pba->a_today, pba->kappa_dcdm))/(1. + pow(a/pba->a_t_dcdm, pba->kappa_dcdm)) );
     if (pba->background_verbose > 3)
-      printf("Density is %g. a_today=%g. Omega_ini=%g\n",pvecback_integration[pba->index_bi_rho_dcdm],pba->a_today,pba->Omega_ini_dcdm);
+      printf("Density is %g. a_today=%g.",pvecback_integration[pba->index_bi_rho_dcdm], pba->a_today);
   }
 
   if (pba->has_dr == _TRUE_){
@@ -1999,9 +2000,11 @@ int background_initial_conditions(
        * but it is not numerically stable for very small f which is always the case.
        * Instead we use the Taylor expansion of this equation, which is equivalent to
        * ignoring f(a) in the Hubble rate.
-       */
+       
       f = 1./3.*pow(a/pba->a_today,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3)/sqrt(Omega_rad);
       pvecback_integration[pba->index_bi_rho_dr] = f*pba->H0*pba->H0/pow(a/pba->a_today,4);
+      * */
+      pvecback_integration[pba->index_bi_rho_dr] = 0.0;
     }
     else{
       /** There is also a space reserved for a future case where dr is not sourced by dcdm */
@@ -2376,13 +2379,13 @@ int background_derivs(
   if (pba->has_dcdm == _TRUE_){
     /** - compute dcdm density \f$ \rho' = -3aH \rho - a \Gamma \rho \f$*/
     dy[pba->index_bi_rho_dcdm] = -3.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*y[pba->index_bi_rho_dcdm]-
-      y[pba->index_bi_a]*pba->Gamma_dcdm*y[pba->index_bi_rho_dcdm];
+      y[pba->index_bi_a]*dcdmdr_model_Q(pba, y[pba->index_bi_a], pvecback[pba->index_bg_H]);
   }
 
   if ((pba->has_dcdm == _TRUE_) && (pba->has_dr == _TRUE_)){
     /** - Compute dr density \f$ \rho' = -4aH \rho - a \Gamma \rho \f$ */
     dy[pba->index_bi_rho_dr] = -4.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*y[pba->index_bi_rho_dr]+
-      y[pba->index_bi_a]*pba->Gamma_dcdm*y[pba->index_bi_rho_dcdm];
+      y[pba->index_bi_a]*dcdmdr_model_Q(pba, y[pba->index_bi_a], pvecback[pba->index_bg_H]);
   }
 
   if (pba->has_fld == _TRUE_) {
@@ -2527,6 +2530,7 @@ double ddV_scf(
   return ddV_e_scf(pba,phi)*V_p_scf(pba,phi) + 2*dV_e_scf(pba,phi)*dV_p_scf(pba,phi) + V_e_scf(pba,phi)*ddV_p_scf(pba,phi);
 }
 
+
 /**
  * Function outputting the fractions Omega of the total critical density
  * today, and also the reduced fractions omega=Omega*h*h
@@ -2620,3 +2624,13 @@ int background_output_budget(struct background* pba){
   }
   return _SUCCESS_;
 }
+
+double dcdmdr_model_Q(
+				struct background *pba,
+				double a,
+				double H) {
+	return pba->Omega0_dcdm*pba->H0*pba->H0 * pba->zeta_dcdm * pba->kappa_dcdm * (1. + 1./pow(pba->a_t_dcdm, pba->kappa_dcdm))
+			* H * pow(a/pba->a_today, pba->kappa_dcdm - 3.) / pow(1. + pow(a/pba->a_t_dcdm, pba->kappa_dcdm), 2.);
+}; 
+
+

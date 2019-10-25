@@ -83,10 +83,13 @@ struct background
   double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$: ultra-relativistic neutrinos */
 
   double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$: decaying cold dark matter (dcdm) decaying to dark radiation (dr) */
+  double Omega0_dcdm; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$: decaying cold dark matter leftover(dcdm) */
+  double Omega0_dr; /**< \f$ \Omega_{0 dr} \f$: decay radiation */
+  //double Gamma_dcdm;
+  double kappa_dcdm; /**< \f$ \kappa{dcdm} \f$: decay rate for decaying cold dark matter */
+  double a_t_dcdm; 	/**< \f$ \a_t_dcdm{dcdm} \f$: decay time for decaying cold dark matter */
+  double zeta_dcdm;	/**< \f$ \zeta{dcdm} \f$: decay fraction for decaying cold dark matter */
 
-  double Gamma_dcdm; /**< \f$ \Gamma_{dcdm} \f$: decay constant for decaying cold dark matter */
-
-  double Omega_ini_dcdm;    /**< \f$ \Omega_{ini,dcdm} \f$: rescaled initial value for dcdm density (see 1407.2418 for definitions) */
 
   double Omega0_scf;        /**< \f$ \Omega_{0 scf} \f$: scalar field */
   short attractor_ic_scf;   /**< whether the scalar field has attractor initial conditions */
@@ -147,11 +150,12 @@ struct background
   int sgnK; /**< K/|K|: -1, 0 or 1 */
   double * m_ncdm_in_eV; /**< list of ncdm masses in eV (inferred from M_ncdm and other parameters above) */
   double Neff; /**< so-called "effective neutrino number", computed at earliest time in interpolation table */
-  double Omega0_dcdm; /**< \f$ \Omega_{0 dcdm} \f$: decaying cold dark matter */
-  double Omega0_dr; /**< \f$ \Omega_{0 dr} \f$: decay radiation */
+
   double Omega0_m;  /**< total non-relativistic matter today */
   double Omega0_r;  /**< total ultra-relativistic radiation today */
   double Omega0_de; /**< total dark energy density today, currently defined as 1 - Omega0_m - Omega0_r - Omega0_k */
+
+
   double a_eq;      /**< scale factor at radiation/matter equality */
   double H_eq;      /**< Hubble rate at radiation/matter equality [Mpc^-1] */
   double z_eq;      /**< redshift at radiation/matter equality */
@@ -539,6 +543,12 @@ extern "C" {
                double phi,
                double phi_prime
                );
+               
+  double dcdmdr_model_Q(
+				struct background *pba,
+				double a,
+				double H
+				);
 
   /** Budget equation output */
   int background_output_budget(
