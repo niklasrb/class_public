@@ -1864,8 +1864,8 @@ int background_solve(
       printf("    Decaying Cold Dark Matter details: (DCDM --> DR)\n");
       printf("     -> Omega0_dcdm = %f\n",pba->Omega0_dcdm);
       printf("     -> Omega0_dr = %f\n",pba->Omega0_dr);
-      printf("     -> Omega0_dr+Omega0_dcdm = %f, input value = %f\n",
-             pba->Omega0_dr+pba->Omega0_dcdm,pba->Omega0_dcdmdr);
+      printf("     -> Omega0_dr+Omega0_dcdm = %f",
+             pba->Omega0_dr+pba->Omega0_dcdm);
       //printf("     -> Omega_ini_dcdm/Omega_b = %f\n",pba->Omega_ini_dcdm/pba->Omega0_b);
     }
     if (pba->has_scf == _TRUE_){
@@ -2386,6 +2386,7 @@ int background_derivs(
     /** - Compute dr density \f$ \rho' = -4aH \rho - a \Gamma \rho \f$ */
     dy[pba->index_bi_rho_dr] = -4.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*y[pba->index_bi_rho_dr]+
       y[pba->index_bi_a]*dcdmdr_model_Q(pba, y[pba->index_bi_a], pvecback[pba->index_bg_H]);
+     //printf("at a= %f we have rho_dr = %f, and rho_dr/dt = %f\n", y[pba->index_bi_a], y[pba->index_bi_rho_dr], dy[pba->index_bi_rho_dr]);
   }
 
   if (pba->has_fld == _TRUE_) {

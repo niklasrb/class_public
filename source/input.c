@@ -856,38 +856,9 @@ int input_read_parameters(
 
   Omega_tot += pba->Omega0_cdm;
 
-  /** - Omega_0_dcdmdr (DCDM) */
-  class_call(parser_read_double(pfc,"Omega_dcdm",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"omega_dcdm",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
-             errmsg,
-             "In input file, you can only enter one of Omega_dcdmdr or omega_dcdmdr, choose one");
-  if (flag1 == _TRUE_)
-    pba->Omega0_dcdm = param1;
-  if (flag2 == _TRUE_)
-    pba->Omega0_dcdm = param2/pba->h/pba->h;
-
-  if (pba->Omega0_dcdm > 0) {
-
-    Omega_tot += pba->Omega0_dcdm;
-
-		class_read_double("kappa_dcdm",pba->kappa_dcdm);
-		class_read_double("zeta_dcdm",pba->zeta_dcdm);
-		class_read_double("a_t_dcdm",pba->a_t_dcdm);
-		class_test(pba->a_t_dcdm > 0,
-						errmsg,
-						"a_t_dcdm must be positive")
-		/* Convert to Mpc */
-		
-
-  }
-
   /** - non-cold relics (ncdm) */
   class_read_int("N_ncdm",N_ncdm);
+	
   if ((flag1 == _TRUE_) && (N_ncdm > 0)){
     pba->N_ncdm = N_ncdm;
 
@@ -1022,7 +993,7 @@ int input_read_parameters(
     }
   }
   Omega_tot += pba->Omega0_ncdm_tot;
-
+  
   /** - Omega_0_k (effective fractional density of curvature) */
   class_read_double("Omega_k",pba->Omega0_k);
   /** - Set curvature parameter K */
@@ -1030,6 +1001,50 @@ int input_read_parameters(
   /** - Set curvature sign */
   if (pba->K > 0.) pba->sgnK = 1;
   else if (pba->K < 0.) pba->sgnK = -1;
+
+
+  /** - Omega_0_dcdmdr (DCDM) */
+  class_call(parser_read_double(pfc,"Omega_dcdm",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"omega_dcdm",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+             errmsg,
+             "In input file, you can only enter one of Omega_dcdmdr or omega_dcdmdr, choose one");
+  if (flag1 == _TRUE_)
+    pba->Omega0_dcdm = param1;
+  if (flag2 == _TRUE_)
+    pba->Omega0_dcdm = param2/pba->h/pba->h;
+
+  if (pba->Omega0_dcdm > 0) {
+
+    Omega_tot += pba->Omega0_dcdm;
+
+	class_read_double("kappa_dcdm",pba->kappa_dcdm);
+	class_read_double("zeta_dcdm",pba->zeta_dcdm);
+	class_read_double("a_t_dcdm",pba->a_t_dcdm);
+	
+	if(pba->zeta_dcdm != 0 && pba->kappa_dcdm != 0)
+		pba->has_dr = _TRUE_;
+		
+	if(pba->has_dr == _TRUE_) {
+		class_test(pba->a_t_dcdm < 0,
+						errmsg,
+						"a_t_dcdm must be positive");
+		// try to find Omega0_dr
+		
+		class_call(input_calc_omega_dr(	ppr, pba,
+							Omega_tot, &(pba->Omega0_dr),  errmsg),
+							errmsg, errmsg); 
+		
+		Omega_tot += pba->Omega0_dr;
+		if(input_verbose > 1)
+			printf("Calculated pba->Omega0_dr = %f\n", pba->Omega0_dr);
+		
+	}
+  }
 
   /** - Omega_0_lambda (cosmological constant), Omega0_fld (dark energy fluid), Omega0_scf (scalar field) */
 
@@ -2936,8 +2951,9 @@ int input_default_params(
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_b = 0.022032/pow(pba->h,2);
   pba->Omega0_cdm = 0.12038/pow(pba->h,2);
-  pba->Omega0_dcdmdr = 0.0;
+  
   pba->Omega0_dcdm = 0.0;
+  pba->Omega0_dr = 0.0;
   pba->kappa_dcdm = 0.;
   pba->zeta_dcdm = 0.;
   pba->a_t_dcdm = 1.;
@@ -2965,7 +2981,7 @@ int input_default_params(
   pba->Omega0_k = 0.;
   pba->K = 0.;
   pba->sgnK = 0;
-  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr;
+  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdm - pba->Omega0_dr;
   pba->Omega0_fld = 0.;
   pba->a_today = 1.;
   pba->use_ppf = _TRUE_;
@@ -4034,3 +4050,134 @@ int input_prepare_pk_eq(
   return _SUCCESS_;
 
 }
+
+int input_calc_omega_dr(	
+							struct precision * ppr,
+							struct background * pba,
+							double Omega_tot,
+							double *Omega0_dr, 
+							ErrorMsg errmsg
+							) {
+	struct background * pba_cp;	
+	
+	class_call(input_cp_background(ppr, pba, &pba_cp, errmsg),
+					errmsg,
+					errmsg);
+	
+	pba_cp->background_verbose = 0;
+	
+	// estimate
+	pba_cp->Omega0_dr = pba->zeta_dcdm * pba->a_t_dcdm *  pba->Omega0_dcdm;
+	Omega_tot += pba_cp->Omega0_dr;
+	
+	pba_cp->Omega0_lambda = 1. - Omega_tot;
+	
+	class_call(background_init(ppr, pba_cp),
+					pba_cp->error_message,
+					errmsg);
+    
+    *Omega0_dr = pba_cp->Omega0_dr;
+    
+	class_call(background_free(pba_cp),
+				errmsg,
+				errmsg);
+								
+	return _SUCCESS_;
+};
+
+int alloc_and_copy(void **dest, void * src, size_t size, ErrorMsg errmsg) {
+	class_alloc(*dest, size, errmsg);
+	memcpy(*dest, src, size);
+	return _SUCCESS_;
+}
+
+int input_cp_background(
+						struct precision * ppr,
+						struct background * pba,
+						struct background ** pba_cp,
+						ErrorMsg errmsg
+						) {
+	
+	
+	class_call(alloc_and_copy(
+				(void **)pba_cp, pba, sizeof(struct background), errmsg), 
+				errmsg, errmsg); 
+	
+	class_call(alloc_and_copy(
+			(void **)&((*pba_cp)->scf_parameters), pba->scf_parameters, 
+			sizeof(double)*pba->scf_parameters_size, errmsg), 
+			errmsg, errmsg); 
+	
+	if(pba->N_ncdm == 0)
+		return _SUCCESS_;
+	
+	class_call(alloc_and_copy(
+			(void **)&((*pba_cp)->ncdm_quadrature_strategy), pba->ncdm_quadrature_strategy, 
+			sizeof(int)*pba->N_ncdm, errmsg), 
+			errmsg, errmsg); 
+
+	class_call(alloc_and_copy(
+			(void **)&((*pba_cp)->ncdm_input_q_size), pba->ncdm_input_q_size, 
+			sizeof(int)*pba->N_ncdm, errmsg), 
+			errmsg, errmsg); 	
+	
+	class_call(alloc_and_copy(
+			(void **)&((*pba_cp)->ncdm_qmax), pba->ncdm_qmax, 
+			sizeof(int)*pba->N_ncdm, errmsg), 
+			errmsg, errmsg);
+
+	class_call(alloc_and_copy(
+			(void **)&((*pba_cp)->T_ncdm), pba->T_ncdm, 
+			sizeof(double)*pba->N_ncdm, errmsg), 
+			errmsg, errmsg);
+
+	class_call(alloc_and_copy(
+			(void **)&((*pba_cp)->ksi_ncdm), pba->ksi_ncdm, 
+			sizeof(double)*pba->N_ncdm, errmsg), 
+			errmsg, errmsg); 
+
+	class_call(alloc_and_copy(
+			(void **)&((*pba_cp)->deg_ncdm), pba->deg_ncdm, 
+			sizeof(double)*pba->N_ncdm, errmsg), 
+			errmsg, errmsg);
+
+	class_call(alloc_and_copy(
+			(void **)&((*pba_cp)->m_ncdm_in_eV), pba->m_ncdm_in_eV, 
+			sizeof(double)*pba->N_ncdm, errmsg), 
+			errmsg, errmsg); 
+
+	class_call(alloc_and_copy(
+			(void **)&((*pba_cp)->Omega0_ncdm), pba->Omega0_ncdm, 
+			sizeof(double)*pba->N_ncdm, errmsg), 
+			errmsg, errmsg); 
+	
+	class_call(alloc_and_copy(
+			(void **)&((*pba_cp)->M_ncdm), pba->M_ncdm, 
+			sizeof(double)*pba->N_ncdm, errmsg), 
+			errmsg, errmsg); 
+	
+
+	class_call(alloc_and_copy(
+			(void **)&((*pba_cp)->got_files), pba->got_files, 
+			sizeof(int)*pba->N_ncdm, errmsg), 
+			errmsg, errmsg);
+
+	// HERE: 	ncdm_psd_filenames
+	/*class_call(alloc_and_copy(
+			&(pba_cp->ncdm_psd_files), pba->ncdm_psd_files, 
+			sizeof(char)*pba->N_ncdm*_ARGUMENT_LENGTH_MAX_, errmsg); */
+	
+	
+	class_call(alloc_and_copy(
+			(void **)&((*pba_cp)->ncdm_psd_parameters), pba->ncdm_psd_parameters, 
+			sizeof(double)*pba->N_ncdm, errmsg), 
+			errmsg, errmsg); 
+	
+
+	class_call(background_ncdm_init(ppr, *pba_cp),
+               (*pba_cp)->error_message,
+               errmsg);
+			
+	return _SUCCESS_;
+}
+

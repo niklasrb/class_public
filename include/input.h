@@ -301,6 +301,29 @@ extern "C" {
                           );
 
 
+int input_cp_background(
+						struct precision * ppr,
+						struct background * pba,
+						struct background ** pba_cp,
+						ErrorMsg errmsg
+						);
+						
+int alloc_and_copy(
+					void **dest,
+					void * src, 
+					size_t size, 
+					ErrorMsg errmsg
+					);
+
+int input_calc_omega_dr(	
+							struct precision *ppr,
+							struct background * pba,
+							double Omega_tot,
+							double *Omega0_dr, 
+							ErrorMsg errmsg
+							) ;
+
+
 #ifdef __cplusplus
 }
 #endif
