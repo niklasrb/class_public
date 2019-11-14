@@ -1010,31 +1010,41 @@ int input_read_parameters(
   class_call(parser_read_double(pfc,"omega_dcdm",&param2,&flag2,errmsg),
              errmsg,
              errmsg);
-  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+  class_call(parser_read_double(pfc, "omega_dcdm_at_rec", &param3, &flag3, errmsg),
+				errmsg,
+				errmsg);
+  class_test(class_at_least_two_of_three(flag1, flag2, flag3),
              errmsg,
-             "In input file, you can only enter one of Omega_dcdmdr or omega_dcdmdr, choose one");
+             "In input file, you can only enter one of Omega_dcdm, omega_dcdm, or omega_dcdm_at_rec choose one");
   if (flag1 == _TRUE_)
     pba->Omega0_dcdm = param1;
   if (flag2 == _TRUE_)
     pba->Omega0_dcdm = param2/pba->h/pba->h;
 
-  if (pba->Omega0_dcdm > 0) {
-
-    Omega_tot += pba->Omega0_dcdm;
-
+  if (pba->Omega0_dcdm > 0 || flag3) {
+	pba->has_dcdm = _TRUE_;
+	
 	class_read_double("kappa_dcdm",pba->kappa_dcdm);
 	class_read_double("zeta_dcdm",pba->zeta_dcdm);
 	class_read_double("a_t_dcdm",pba->a_t_dcdm);
 	
-	if(pba->zeta_dcdm != 0 && pba->kappa_dcdm != 0)
-		pba->has_dr = _TRUE_;
-		
-	if(pba->has_dr == _TRUE_) {
-		class_test(pba->a_t_dcdm < 0,
+	class_test(pba->a_t_dcdm < 0,
 						errmsg,
 						"a_t_dcdm must be positive");
-		// try to find Omega0_dr
-		
+	
+	if(flag3) {
+		double a_rec = 1./(1.+1100.);
+		pba->Omega0_dcdm = param3/pba->h/pba->h / (1. + pba->zeta_dcdm * (1-pow(a_rec/pba->a_today, pba->kappa_dcdm))/(1.+ pow(a_rec/pba->a_t_dcdm, pba->kappa_dcdm)));
+		if(input_verbose > 1)
+			printf("decrease by a factor of = %f\n", 1. + pba->zeta_dcdm * (1-pow(a_rec/pba->a_today, pba->kappa_dcdm))/(1.+ pow(a_rec/pba->a_t_dcdm, pba->kappa_dcdm)));
+	}
+	
+	Omega_tot += pba->Omega0_dcdm;
+	
+	if(pba->zeta_dcdm != 0 && pba->kappa_dcdm != 0)
+		pba->has_dr = _TRUE_;
+
+	if(pba->has_dr == _TRUE_) {
 		class_call(input_calc_omega_dr(	ppr, pba,
 							Omega_tot, &(pba->Omega0_dr),  errmsg),
 							errmsg, errmsg); 
@@ -3640,7 +3650,7 @@ int input_get_guess(double *xguess,
   struct output op;           /* for output files */
   int i;
 
-  double Omega_M, a_decay, gamma, Omega0_dcdmdr=1.0;
+  double Omega_M, a_decay, gamma;
   int index_guess;
 
   /* Cheat to read only known parameters: */
@@ -4111,6 +4121,7 @@ int input_cp_background(
 	if(pba->N_ncdm == 0)
 		return _SUCCESS_;
 	
+	//class_test(pba->N_ncdm != 0, errmsg, "N_ncdm and dcdmdr cannot be combined in current implementation");
 	class_call(alloc_and_copy(
 			(void **)&((*pba_cp)->ncdm_quadrature_strategy), pba->ncdm_quadrature_strategy, 
 			sizeof(int)*pba->N_ncdm, errmsg), 

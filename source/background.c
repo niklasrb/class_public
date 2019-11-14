@@ -2004,7 +2004,9 @@ int background_initial_conditions(
       f = 1./3.*pow(a/pba->a_today,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3)/sqrt(Omega_rad);
       pvecback_integration[pba->index_bi_rho_dr] = f*pba->H0*pba->H0/pow(a/pba->a_today,4);
       * */
-      pvecback_integration[pba->index_bi_rho_dr] = 0.0;
+      pvecback_integration[pba->index_bi_rho_dr] = 
+		pba->Omega0_dcdm*pba->H0*pba->H0*pow(pba->a_today/a,3) 
+		* pba->zeta_dcdm * pba->kappa_dcdm * pow(a/pba->a_t_dcdm, pba->kappa_dcdm)/(pba->kappa_dcdm + 1.);
     }
     else{
       /** There is also a space reserved for a future case where dr is not sourced by dcdm */
@@ -2259,6 +2261,7 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_time]/_Gyr_over_Mpc_,_TRUE_,storeidx);
     class_store_double(dataptr,pba->conformal_age-pvecback[pba->index_bg_conf_distance],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_H],_TRUE_,storeidx);
+    //class_store_double(dataptr,pvecback[pba->index_bi_a], _TRUE_, storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_conf_distance],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_ang_distance],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_lum_distance],_TRUE_,storeidx);

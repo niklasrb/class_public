@@ -85,7 +85,7 @@ struct background
   //double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$: decaying cold dark matter (dcdm) decaying to dark radiation (dr) */
   double Omega0_dcdm; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$: decaying cold dark matter leftover(dcdm) */
   double Omega0_dr; /**< \f$ \Omega_{0 dr} \f$: decay radiation */
-  //double Gamma_dcdm;
+
   double kappa_dcdm; /**< \f$ \kappa{dcdm} \f$: decay rate for decaying cold dark matter */
   double a_t_dcdm; 	/**< \f$ \a_t_dcdm{dcdm} \f$: decay time for decaying cold dark matter */
   double zeta_dcdm;	/**< \f$ \zeta{dcdm} \f$: decay fraction for decaying cold dark matter */
