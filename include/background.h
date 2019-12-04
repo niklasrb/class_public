@@ -88,7 +88,9 @@ struct background
 
   double kappa_dcdm; /**< \f$ \kappa{dcdm} \f$: decay rate for decaying cold dark matter */
   double a_t_dcdm; 	/**< \f$ \a_t_dcdm{dcdm} \f$: decay time for decaying cold dark matter */
-  double zeta_dcdm;	/**< \f$ \zeta{dcdm} \f$: decay fraction for decaying cold dark matter */
+  double zeta_dcdm;	/**< \f$ \zeta_dcdm{dcdm} \f$: decay fraction for decaying cold dark matter */
+  double del_Neff_0_dr; /**< \f$ \del_Neff_0_dcdm{dcdm} \f$: derived parameter giving N_eff by DR today */
+  
 
 
   double Omega0_scf;        /**< \f$ \Omega_{0 scf} \f$: scalar field */

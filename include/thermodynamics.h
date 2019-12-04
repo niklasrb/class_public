@@ -225,6 +225,8 @@ struct thermo
   double angular_rescaling; /**< [ratio ra_rec / (tau0-tau_rec)]: gives CMB rescaling in angular space relative to flat model (=1 for curvature K=0) */
   double tau_free_streaming;   /**< minimum value of tau at which sfree-streaming approximation can be switched on */
 
+
+  double del_Neff_rec_dr; /**< \f$ \del_Neff_0_dcdm{dcdm} \f$: derived parameter giving N_eff by DR at recombination */
   //@}
 
   /** @name - initial conformal time at which thermodynamical variables have been be integrated */

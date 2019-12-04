@@ -751,6 +751,9 @@ int thermodynamics_init(
   pth->ra_rec=pth->da_rec*(1.+pth->z_rec)/pba->a_today;
   pth->angular_rescaling=pth->ra_rec/(pba->conformal_age-pth->tau_rec);
 
+  if(pba->has_dr)
+	pth->del_Neff_rec_dr  = (8./7.)*pow(11./4., 4./3.) * pvecback[pba->index_bg_rho_dr] / pvecback[pba->index_bg_rho_g];
+
   /** - find damping scale at recombination (using linear interpolation) */
 
   if (pth->compute_damping_scale == _TRUE_) {

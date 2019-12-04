@@ -1050,6 +1050,7 @@ int input_read_parameters(
 							errmsg, errmsg); 
 		
 		Omega_tot += pba->Omega0_dr;
+		pba->del_Neff_0_dr = (8./7.)*pow(11./4., 4./3.) * pba->Omega0_dr / pba->Omega0_g;
 		if(input_verbose > 1)
 			printf("Calculated pba->Omega0_dr = %f\n", pba->Omega0_dr);
 		
@@ -2967,6 +2968,7 @@ int input_default_params(
   pba->kappa_dcdm = 0.;
   pba->zeta_dcdm = 0.;
   pba->a_t_dcdm = 1.;
+  pba->del_Neff_0_dr = 0.;
   
   pba->N_ncdm = 0;
   pba->Omega0_ncdm_tot = 0.;
@@ -3036,6 +3038,8 @@ int input_default_params(
   pth->compute_cb2_derivatives=_FALSE_;
 
   pth->compute_damping_scale = _FALSE_;
+  
+  pth->del_Neff_rec_dr = 0.;
 
   /** - perturbation structure */
 

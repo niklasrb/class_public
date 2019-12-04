@@ -726,6 +726,7 @@ int background_init(
              pba->error_message,
              pba->error_message);
 
+
   return _SUCCESS_;
 
 }

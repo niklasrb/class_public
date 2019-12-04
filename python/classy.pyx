@@ -1650,6 +1650,10 @@ cdef class Class:
                 value = self.ba.Omega0_m
             elif name == 'omega_m':
                 value = self.ba.Omega0_m/self.ba.h**2
+            elif name == 'del_Neff_0_dr':
+                value = self.ba.del_Neff_0_dr
+            elif name == 'del_Neff_rec_dr':
+                value = self.th.del_Neff_rec_dr
             elif name == 'tau_reio':
                 value = self.th.tau_reio
             elif name == 'z_reio':
