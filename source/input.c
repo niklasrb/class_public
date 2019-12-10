@@ -3444,6 +3444,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
   for (i=0; i < unknown_parameters_size; i++) {
     sprintf(pfzw->fc.value[pfzw->unknown_parameters_index[i]],
             "%e",unknown_parameter[i]);
+    //printf("Trying parameter %.10e ",unknown_parameter[i]);
   }
 
   class_call(input_read_precisions(&(pfzw->fc),
@@ -3765,7 +3766,7 @@ int input_find_root(double *xzero,
              errmsg, errmsg);
 
   (*fevals)++;
-  //printf("x1= %g, f1= %g\n",x1,f1);
+
 
   dx = 1.5*f1*dxdy;
 
@@ -3777,7 +3778,6 @@ int input_find_root(double *xzero,
     for (iter2=1; iter2 <= 3; iter2++) {
       return_function = input_fzerofun_1d(x2,pfzw,&f2,errmsg);
       (*fevals)++;
-      //printf("x2= %g, f2= %g\n",x2,f2);
       //fprintf(stderr,"iter2=%d\n",iter2);
 
       if (return_function ==_SUCCESS_) {
@@ -4073,6 +4073,7 @@ int input_calc_omega_dr(
 							ErrorMsg errmsg
 							) {
 	struct background * pba_cp;	
+	int shooting_failed = _FALSE_;
 	
 	class_call(input_cp_background(ppr, pba, &pba_cp, errmsg),
 					errmsg,
@@ -4086,16 +4087,24 @@ int input_calc_omega_dr(
 	
 	pba_cp->Omega0_lambda = 1. - Omega_tot;
 	
-	class_call(background_init(ppr, pba_cp),
+	class_call_try(background_init(ppr, pba_cp),
 					pba_cp->error_message,
-					errmsg);
+                    pba->shooting_error,
+                    shooting_failed=_TRUE_);
     
-    *Omega0_dr = pba_cp->Omega0_dr;
-    
-	class_call(background_free(pba_cp),
+    if(shooting_failed){	// on error set shooting failed and clear input
+		pba->shooting_failed = shooting_failed;
+		class_call(background_free_input(pba_cp),
 				errmsg,
 				errmsg);
-								
+		
+	} else {			// on success clear the whole struct
+		*Omega0_dr = pba_cp->Omega0_dr;
+		class_call(background_free(pba_cp),
+					errmsg,
+					errmsg);
+	}
+	free(pba_cp);							
 	return _SUCCESS_;
 };
 
@@ -4117,10 +4126,12 @@ int input_cp_background(
 				(void **)pba_cp, pba, sizeof(struct background), errmsg), 
 				errmsg, errmsg); 
 	
-	class_call(alloc_and_copy(
-			(void **)&((*pba_cp)->scf_parameters), pba->scf_parameters, 
-			sizeof(double)*pba->scf_parameters_size, errmsg), 
-			errmsg, errmsg); 
+	if(pba->Omega0_scf != 0.) {
+		class_call(alloc_and_copy(
+				(void **)&((*pba_cp)->scf_parameters), pba->scf_parameters, 
+				sizeof(double)*pba->scf_parameters_size, errmsg), 
+				errmsg, errmsg); 
+	}
 	
 	if(pba->N_ncdm == 0)
 		return _SUCCESS_;

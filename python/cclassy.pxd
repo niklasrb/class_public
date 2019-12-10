@@ -90,6 +90,9 @@ cdef extern from "class.h":
         double H_eq
         double z_eq
         double tau_eq
+        double del_Neff_0_dr
+
+>>>>>>> shooting error and mem leak
 
     cdef struct thermo:
         ErrorMsg error_message
@@ -117,7 +120,7 @@ cdef extern from "class.h":
         double rs_d
         double YHe
         double n_e
-
+        double del_Neff_rec_dr
         int tt_size
 
     cdef struct perturbs:
