@@ -684,9 +684,9 @@ int background_init(
 
   /* H0 in Mpc^{-1} */
   /* Many users asked for this test to be supressed. It is commented out. */
-  class_test((pba->H0 < _H0_SMALL_)||(pba->H0 > _H0_BIG_),
+  class_test((pba->h < _h_SMALL_)||(pba->h > _h_BIG_),
              pba->error_message,
-             "H0=%g out of bounds (%g<H0<%g) \n",pba->H0,_H0_SMALL_,_H0_BIG_);
+             "h=%g out of bounds (%g<h<%g) \n",pba->h,_h_SMALL_,_h_BIG_);
 
   class_test(fabs(pba->h * 1.e5 / _c_  / pba->H0 -1.)>ppr->smallest_allowed_variation,
              pba->error_message,

@@ -6792,7 +6792,7 @@ int perturb_sources(
     /* delta_dcdm */
     if (ppt->has_source_delta_dcdm == _TRUE_) {
       _set_source_(ppt->index_tp_delta_dcdm) = y[ppw->pv->index_pt_delta_dcdm]
-        + (3.*a_prime_over_a+a_rel*pba->Gamma_dcdm)*theta_over_k2; // N-body gauge correction;
+        + (3.*a_prime_over_a+a_rel* dcdmdr_model_Q(pba, pvecback[pba->index_bg_a], pvecback[pba->index_bg_H])/pvecback[pba->index_bg_rho_dcdm])*theta_over_k2; // N-body gauge correction;
     }
 
     /* delta_fld */

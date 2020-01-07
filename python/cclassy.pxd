@@ -92,7 +92,6 @@ cdef extern from "class.h":
         double tau_eq
         double del_Neff_0_dr
 
->>>>>>> shooting error and mem leak
 
     cdef struct thermo:
         ErrorMsg error_message
