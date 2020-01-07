@@ -1768,6 +1768,8 @@ cdef class Class:
                 value = self.nl.sigma8[self.nl.index_pk_m]
             elif name == 'sigma8_cb':
                 value = self.nl.sigma8[self.nl.index_pk_cb]
+            elif name == 'S8':
+                value = self.sp.sigma8[self.nl.index_pk_m] * (self.ba.Omega0_m/0.27)**0.3
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
             derived[name] = value
